@@ -34,7 +34,7 @@
 //
 //   route.Get("/", GetRoot)
 //   route.Get("/*path", GetAnythingButRoot)
-//   route.Get("/foo", GetFoo)            // panics
+//   route.Get("/:foo", GetFoo)            // panics
 //
 // Routes can optionally be named, that way you can construct a url
 // that would match the route.
@@ -82,8 +82,8 @@
 //
 //   log.Fatal(http.ListenAndServe(":8080", route.DefaultHandler))
 //
-// Lastly, there is no locking. You should register HandlerFuncs from
-// a single thread.
+// Lastly, there is no locking, so setup all your routes once and then
+// hand it off to the http server.
 //
 package route
 
