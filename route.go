@@ -82,7 +82,7 @@
 //
 //   log.Fatal(http.ListenAndServe(":8080", route.DefaultHandler))
 //
-// Lastly, there is no locking, so setup all your routes once and then
+// Lastly, there is no locking, so set up all your routes once and
 // hand it off to the http server.
 //
 package route
