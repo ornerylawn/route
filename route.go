@@ -179,7 +179,7 @@ type Handler struct {
 	Handle405   http.HandlerFunc
 	HandlePanic func(*http.Request, interface{}) // Takes the value that was passed to the panic.
 
-	trie
+	trie trie
 	pats map[string]string
 }
 
@@ -215,13 +215,10 @@ func (h *Handler) Match(method, pat string, f http.HandlerFunc, name ...string) 
 		if part[0] == ':' {
 			if t.varName != "" {
 				if t.varName != part {
-					panic("route: pattern conflicats with one already registered")
+					panic("route: pattern conflicts with one already registered")
 				}
 				t = t.t[part]
 				continue
-			}
-			if len(t.t) != 0 {
-				panic("route: pattern conflicts with one already registered")
 			}
 			t.varName = part
 			if t.t == nil {
@@ -238,13 +235,10 @@ func (h *Handler) Match(method, pat string, f http.HandlerFunc, name ...string) 
 			}
 			if t.varName != "" {
 				if t.varName != part {
-					panic("route: pattern conflicats with one already registered")
+					panic("route: pattern conflicts with one already registered")
 				}
 				t = t.t[part]
 				break
-			}
-			if len(t.t) != 0 {
-				panic("route: pattern conflicats with one already registered")
 			}
 			t.varName = part
 			if t.t == nil {
@@ -255,9 +249,6 @@ func (h *Handler) Match(method, pat string, f http.HandlerFunc, name ...string) 
 			break
 		}
 		// Part is not a var.
-		if t.varName != "" {
-			panic("route: pattern conflicts with one already registered")
-		}
 		if _, ok := t.t[part]; !ok {
 			if t.t == nil {
 				t.t = map[string]*trie{}
@@ -345,22 +336,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	t := &h.trie
 	for i, part := range parts {
-		if t.varName != "" {
-			if t.varName[0] == '*' {
-				r.URL.RawQuery = appendQuery(r.URL.RawQuery, t.varName, strings.Join(parts[i:], "/"))
-				t = t.t[t.varName]
-				break
+		// Try to match exactly first.
+		if part[0] != ':' && part[0] != '*' {
+			if t2, ok := t.t[part]; ok {
+				t = t2
+				continue
 			}
-			r.URL.RawQuery = appendQuery(r.URL.RawQuery, t.varName, part)
-			t = t.t[t.varName]
-			continue
 		}
-		var ok bool
-		t, ok = t.t[part]
-		if !ok {
+		// Try to use a variable instead.
+		if t.varName == "" {
 			h.handle404(w, r)
 			return
 		}
+		if t.varName[0] == '*' {
+			r.URL.RawQuery = appendQuery(r.URL.RawQuery, t.varName, strings.Join(parts[i:], "/"))
+			t = t.t[t.varName]
+			break
+		}
+		r.URL.RawQuery = appendQuery(r.URL.RawQuery, t.varName, part)
+		t = t.t[t.varName]
 	}
 	if len(t.verbs) == 0 {
 		h.handle404(w, r)
